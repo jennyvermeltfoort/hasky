@@ -17,50 +17,40 @@ data World = World {
 
 baseState :: World
 baseState = World {
-        bombCells = [(1,1), (0,0), (0,1)],
+        bombCells = [(0,0), (0,1), (0,2), (0,3)],
         flagCells = [(1,1)],
         openCells = [],
         dead = False
 }
 
 width :: Int
-width = 10
+width = 4
 height :: Int
-height = 10
+height = 4
 
 neighborCells :: (Int, Int) -> [(Int, Int)]
 neighborCells (x,y) = [(a, b) | a <- [x-1 .. x+1], b <- [y-1 .. y+1], (a,b) /= (x,y), a >= 0, a < width, b >= 0, b < height]
 
 numNeighborBomb :: ((Int, Int) -> Bool) -> (Int, Int) -> Int
 numNeighborBomb isBombCell (x,y) = length (filter isBombCell (neighborCells (x,y)))
-allCells = [(x,y) | x <- [0 .. width-1], y <- [0.. height-1]]
 
-{-
-addCells :: [(Int, Int)] -> ((Int, Int) -> Bool) -> ((Int, Int) -> Bool) -> [(Int, Int)] -> [(Int, Int)]
-addCells openCells isFlag isBomb (c: cells) 
-                                            | elem c openCells = openCells 
-                                            | isFlag c = openCells
-                                            | numNeighborBomb isBomb c == 0 = addCells (openCells ++ [c]) isFlag isBomb (neighborCells c)
-                                            | cells == [] = openCells ++ [c]
-                                            | otherwise = addCells (openCells ++ [c]) isFlag isBomb cells
--}
+openZeroCells :: ((Int, Int) -> Bool) -> ((Int, Int) -> Int)  -> (Int, Int) -> [(Int, Int)] -> [(Int, Int)]
+openZeroCells isFlag numNeighborBomb cell visited
+    | isFlag cell = visited
+    | elem cell visited = visited
+    | numNeighborBomb cell /= 0 = cell : visited
+    | otherwise = 
+        let newVisited = cell : visited
+            neighbors = neighborCells cell
+        in foldl (\acc neighbor -> openZeroCells isFlag numNeighborBomb neighbor acc) newVisited neighbors 
 
-addCells isNotOpen isFlag isBomb (c: cells) 
-                                            | cells == [] && (not (isNotOpen c) || isFlag c) = []
-                                            | not (isNotOpen c) || isFlag c = addCells isNotOpen isFlag isBomb cells
-                                            | numNeighborBomb isBomb c == 0 = 
-                                                        trace ("hell" ++ show (neighborCells c))
-                                                        [c] ++ addCells (\n -> not (elem n (neighborCells c))) isFlag isBomb (filter isNotOpen (neighborCells c))
-                                            | cells == [] = [c]
-                                            | otherwise = [c] ++ addCells isNotOpen isFlag isBomb cells
 
-neighborZeroCells isBomb cell = [ c | c <- neighborCells cell, numNeighborBomb isBomb c == 0 ]
-allNeighborZeroCells :: ((Int, Int) -> Bool) -> [(Int, Int)] -> [(Int, Int)]
-allNeighborZeroCells isBomb (c: cells) | cells == [] = neighborZeroCells isBomb c
-				       | otherwise = neighborZeroCells isBomb c ++ allNeighborZeroCells isBomb cells
-                                  
+openCell :: ((Int, Int) -> Bool) -> ((Int, Int) -> Int) -> (Int, Int) -> [(Int, Int)]
+openCell isFlag numNeighborBomb cell 
+        | isFlag cell = []
+        | numNeighborBomb cell == 0 = openZeroCells isFlag numNeighborBomb cell []
+        | otherwise = [cell]
 
-{-
 openState :: World -> (Int, Int) -> World
 openState state (x,y) = World {
         bombCells = (bombCells state),
@@ -68,13 +58,9 @@ openState state (x,y) = World {
         openCells = addCell (openCells state) (\n -> elem n (flagCells state)) (\n -> elem n (bombCells state)) (x,y),
         dead = elem (x,y) (bombCells state)
 }
--}
 
 main :: IO ()
 main = do
-	print $ allNeighborZeroCells (\n -> elem n (bombCells baseState)) [(3,3)]
-        --print $ numNeighborBomb (\n -> elem n (bombCells baseState)) (3,3)
-        --print $ addCells (\n -> not (elem n (openCells baseState))) (\n -> elem n (flagCells baseState)) (\n -> elem n (bombCells baseState)) [(3,3)]
-        --print $ (numNeighborBomb (\n -> elem n (bombCells baseState)) (3,3))
-        --print $ (openCells (openState (openState baseState (3,3)) (1,2)))
+    print $ openCell (\n -> elem n (flagCells baseState)) (numNeighborBomb (\n -> elem n (bombCells baseState))) (3,3)
+
 
