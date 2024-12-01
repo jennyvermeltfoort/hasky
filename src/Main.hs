@@ -3,7 +3,8 @@
 
 import Data.Char
 import Prelude hiding (map)
-import Data.List
+import Data.List 
+import Data.Set as Set hiding (foldl, filter, partition)
 
 import Debug.Trace
 
@@ -14,8 +15,8 @@ data World = World {
         dead :: Bool
 }
 
-width = 4 :: Int
-height = 4 :: Int
+width = 5 :: Int
+height = 5 :: Int
 
 neighborCells :: (Int, Int) -> [(Int, Int)]
 neighborCells (x,y) = [(a, b) | a <- [x-1 .. x+1], b <- [y-1 .. y+1], (a,b) /= (x,y), a >= 0, a < width, b >= 0, b < height]
@@ -43,11 +44,38 @@ openCell isFlag numNeighborBomb cell
 
 baseState :: World
 baseState = World {
-        bombCells = [(0,0), (0,1), (0,2), (0,3)],
+        bombCells = [(2,0), (2,1), (2,2),(2,3),(2,4),(2,5)],
         flagCells = [(1,1)],
         openCells = [],
         dead = False
 }
+
+allCells = [(x,y) | x <- [0 .. width - 1], y <- [0 .. height - 1]]
+zeroBombCells numNeighborBomb = [x | x <- allCells, numNeighborBomb x == 0]
+
+partitionZeroBombCells zeroBombCells = 
+        let firstCell = head zeroBombCells
+            neighbors = (neighborCells firstCell)
+            partition = partitionZeroBombCells' zeroBombCells (neighbors ++ [firstCell])
+        in toList Set.fromList partition
+        where 
+        partitionZeroBombCells' [] acc = acc
+        partitionZeroBombCells' (x:xs) acc =
+                let newAcc = if elem x acc
+                             then (acc ++ (neighborCells x))
+                             else acc
+                in partitionZeroBombCells' xs newAcc
+
+part zeroBombCells = 
+        filter (`elem` zeroBombCells) (partitionZeroBombCells zeroBombCells)
+        
+
+                
+main :: IO ()
+main = do
+        print $ part (zeroBombCells (numNeighborBomb (\n -> elem n (bombCells baseState))))
+        printGrid (grid (openState baseState (3,3))) 0
+
 
 openState :: World -> (Int, Int) -> World
 openState state cell =
@@ -67,7 +95,6 @@ intToChar n
     | n >= 0 && n <= 9 = chr (n + 48)  -- 48 is the ASCII code for '0'
     | otherwise = error "Input must be a single digit (0-9)"
 
-allCells = [(x,y) | x <- [0 .. width - 1], y <- [0 .. height - 1]]
 cellChar state cell 
         | elem cell (openCells state) && elem cell (bombCells state) = 'x'
         | elem cell (openCells state) = intToChar (numNeighborBomb (\n -> elem n (bombCells baseState)) cell)
@@ -84,7 +111,3 @@ printGrid (x: grid) index
                 putChar '\n'
                 putChar x
                 printGrid grid 1
-                
-main :: IO ()
-main = do
-        printGrid (grid (openState baseState (3,3))) 0
