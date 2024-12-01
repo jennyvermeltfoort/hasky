@@ -54,6 +54,10 @@ addCells isNotOpen isFlag isBomb (c: cells)
                                             | cells == [] = [c]
                                             | otherwise = [c] ++ addCells isNotOpen isFlag isBomb cells
 
+neighborZeroCells isBomb cell = [ c | c <- neighborCells cell, numNeighborBomb isBomb c == 0 ]
+allNeighborZeroCells :: ((Int, Int) -> Bool) -> [(Int, Int)] -> [(Int, Int)]
+allNeighborZeroCells isBomb (c: cells) | cells == [] = neighborZeroCells isBomb c
+				       | otherwise = neighborZeroCells isBomb c ++ allNeighborZeroCells isBomb cells
                                   
 
 {-
@@ -68,8 +72,9 @@ openState state (x,y) = World {
 
 main :: IO ()
 main = do
-        print $ numNeighborBomb (\n -> elem n (bombCells baseState)) (3,3)
-        print $ addCells (\n -> not (elem n (openCells baseState))) (\n -> elem n (flagCells baseState)) (\n -> elem n (bombCells baseState)) [(3,3)]
+	print $ allNeighborZeroCells (\n -> elem n (bombCells baseState)) [(3,3)]
+        --print $ numNeighborBomb (\n -> elem n (bombCells baseState)) (3,3)
+        --print $ addCells (\n -> not (elem n (openCells baseState))) (\n -> elem n (flagCells baseState)) (\n -> elem n (bombCells baseState)) [(3,3)]
         --print $ (numNeighborBomb (\n -> elem n (bombCells baseState)) (3,3))
         --print $ (openCells (openState (openState baseState (3,3)) (1,2)))
 
