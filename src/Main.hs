@@ -27,7 +27,7 @@ numNeighborBomb isBombCell (x, y) = length (Prelude.filter isBombCell (neighborC
 baseState :: World
 baseState =
   World
-    { bombCells = Set.fromList [(2, 0)],
+    { bombCells = Set.fromList [(2, 0), (0, 3), (1, 3)],
       flagCells = Set.fromList [],
       openCells = Set.fromList [],
       dead = False
@@ -63,23 +63,23 @@ cellCreateAllNeighborRelations zeroCells
      in relations ++ cellCreateAllNeighborRelations nextCells
 
 cartesianProduct :: [((Int, Int), (Int, Int))] -> [((Int, Int), (Int, Int))] -> [((Int, Int), (Int, Int))]
-cartesianProduct a b = [(a0, b1) | (a0, a1) <- a, (b0, b1) <- b]
+cartesianProduct a b = [(a0, b1) | (a0, a1) <- a, (b0, b1) <- b, a1 == b0]
 
 inverseRelation :: [((Int, Int), (Int, Int))] -> [((Int, Int), (Int, Int))]
 inverseRelation a = [(a1, a0) | (a0, a1) <- a]
 
 makeTransitive :: [((Int, Int), (Int, Int))] -> [((Int, Int), (Int, Int))]
 makeTransitive a =
-  Set.toList (Set.unions [(Set.fromList a), (makeTransitive' a 1), (makeTransitive' a 2)])
+  nub (a ++ makeTransitive' a a 4) -- R U R^1 U R^2
   where
-    makeTransitive' a 0 = Set.fromList (cartesianProduct a a)
-    makeTransitive' a num =
-      let product = Set.fromList (cartesianProduct a a)
-          next = makeTransitive' a (num - 1)
-       in Set.union product next
+    makeTransitive' a product 0 = product
+    makeTransitive' a product num =
+      let nextproduct = cartesianProduct a product
+          next = makeTransitive' a nextproduct (num - 1)
+       in nextproduct ++ next
 
 makeSymmetric :: [((Int, Int), (Int, Int))] -> [((Int, Int), (Int, Int))]
-makeSymmetric a = a ++ inverseRelation a
+makeSymmetric a = nub (a ++ inverseRelation a)
 
 main :: IO ()
 main =
@@ -88,5 +88,6 @@ main =
     let zeroCells = zeroBombCells (numNeighborBomb isBomb) isBomb
     let relations = cellCreateAllNeighborRelations zeroCells
     let symmetric = makeSymmetric relations
-    let paths = Set.fromList (makeTransitive symmetric)
-    print $ List.groupBy (\a b -> member (a, b) paths) zeroCells
+    let paths = makeTransitive symmetric
+    print $ paths
+    print $ List.groupBy (\a b -> elem (a, b) paths) zeroCells
