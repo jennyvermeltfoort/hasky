@@ -56,7 +56,7 @@ cellCreateCellNeighborRelations cells headCell
     let nextCells = tail cells
         firstCell = head cells
         relation = cellCreateNeighborRelation headCell firstCell
-     in relation ++ cellCreateCellNeighborRelations nextCells headCell
+     in union relation (cellCreateCellNeighborRelations nextCells headCell)
 
 cellCreateAllNeighborRelations :: [Cell] -> [CellRelation]
 cellCreateAllNeighborRelations zeroCells
@@ -65,17 +65,17 @@ cellCreateAllNeighborRelations zeroCells
     let firstCell = head zeroCells
         nextCells = tail zeroCells
         relations = (cellCreateCellNeighborRelations nextCells firstCell)
-     in relations ++ cellCreateAllNeighborRelations nextCells
+     in union relations (cellCreateAllNeighborRelations nextCells)
 
 cartesianProduct :: [CellRelation] -> [CellRelation] -> [CellRelation]
-cartesianProduct a b = [(a0, b1) | (b0, b1) <- b, (a0, a1) <- a, a1 == b0]
+cartesianProduct a b = nub [(a0, b1) | (b0, b1) <- b, (a0, a1) <- a, a1 == b0, a1 /= b1]
 
 inverseRelation :: [CellRelation] -> [CellRelation]
 inverseRelation a = [(a1, a0) | (a0, a1) <- a]
 
 makeTransitive :: [CellRelation] -> [CellRelation]
 makeTransitive a =
-  union a (makeTransitive' a a 2) -- R U R^1 U R^2
+  union a (makeTransitive' a a 10) -- R U R^1 U R^2
   where
     makeTransitive' a product 0 = product
     makeTransitive' a product num =
