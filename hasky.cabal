@@ -68,7 +68,7 @@ executable hasky
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.20.0.0, ansi-terminal >= 1.1.2
+    build-depends:    base ^>=4.13.0.0, ansi-terminal >= 1.1.2
 
     -- Directories containing source files.
     hs-source-dirs:   src
